@@ -1,0 +1,38 @@
+package ancientauth;
+
+message BasicCreds {
+	required string user_name = 1;
+	repeated string scope = 2;
+	required int64 expires = 3;
+}
+
+message TokenCookie {
+	required BasicCreds basic_creds = 1;
+	optional bytes signature = 2;
+}
+
+message LoginCookie {
+	required BasicCreds basic_creds = 1;
+	required int64 granted = 2;
+	required int64 purges = 3;
+	required bytes random = 4;
+	optional bytes signature = 5;
+}
+
+message AuthTokenRequest {
+	required bytes certificate = 1;
+	required string return_uri = 2;
+	required string original_uri = 3;
+	required string app_name = 4;
+	optional bytes signature = 5;
+}
+
+message AuthTokenResponse {
+	required BasicCreds basic_creds = 1;
+	required string app_name = 2;
+	required string original_uri = 3;
+	required bytes certificate = 4;
+	required int64 granted = 5;
+	required bytes random = 7;
+	optional bytes signature = 8;
+}
