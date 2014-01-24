@@ -12,11 +12,17 @@ from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 from Crypto.Signature import PKCS1_v1_5
 
+from datetime import datetime
+
 import token_pb2
 
 
 class SignatureException(Exception):
     """The signature on a cookie was not valid."""
+
+
+class TokenExpiredException(Exception):
+    """The token which was supposed to be decoded has expired."""
 
 
 class NoKeyException(Exception):
@@ -136,6 +142,10 @@ class TokenCookieCodec(object):
         data = base64.urlsafe_b64decode(src)
         self._tc.ParseFromString(data)
 
+        if (datetime.utcfromtimestamp(self._tc.basic_creds.expires) <
+            datetime.utcnow()):
+            raise TokenExpiredException()
+
         # We'll need a copy of the data so we can verify it by
         # setting the signature to None.
         pb = token_pb2.TokenCookie()
@@ -249,6 +259,18 @@ class LoginCookieCodec(object):
 
         data = base64.urlsafe_b64decode(src)
         self._lc.ParseFromString(data)
+
+        if (datetime.utcfromtimestamp(self._lc.basic_creds.expires) <
+            datetime.utcnow()):
+            raise TokenExpiredException()
+
+        if (datetime.utcfromtimestamp(self._lc.granted) >
+            datetime.utcnow()):
+            raise TokenExpiredException()
+
+        if (datetime.utcfromtimestamp(self._lc.purges) <
+            datetime.utcnow()):
+            raise TokenExpiredException()
 
         # We'll need a copy of the data so we can verify it by
         # setting the signature to None.
@@ -543,7 +565,11 @@ class AuthTokenResponseCodec(object):
         data = base64.urlsafe_b64decode(src)
         self._atr.ParseFromString(data)
 
-        # We'll need a copy of the data so we can verify it by
+        if (datetime.utcfromtimestamp(self._atr.basic_creds.expires) <
+            datetime.utcnow()):
+            raise TokenExpiredException()
+
+       # We'll need a copy of the data so we can verify it by
         # setting the signature to None.
         pb = token_pb2.AuthTokenResponse()
         pb.ParseFromString(data)

@@ -72,7 +72,7 @@ def set_basic_creds(creds):
 	creds.Clear()
 	creds.user_name = u"testuser"
 	creds.scope.extend([u"user", u"admin"])
-	creds.expires = calendar.timegm(datetime.now().timetuple()) + 30
+	creds.expires = calendar.timegm(datetime.utcnow().timetuple()) + 30
 
 
 def gen_certificate():
@@ -127,6 +127,27 @@ class TestTokenCookie(unittest.TestCase):
 		tcc = token_cookie.TokenCookieCodec(vtc, pubkey=cert.get_pub_key())
 		self.assertRaises(token_cookie.SignatureException, tcc.decode, data)
 
+	def test_verify_expired_cookie(self):
+		"""Verify a cookie with its expiry set in the past."""
+
+		cert, key = gen_certificate()
+
+		# Create a TokenCookie with the basic credentials.
+		tc = token_pb2.TokenCookie()
+		set_basic_creds(tc.basic_creds)
+		tc.basic_creds.expires -= 90
+
+		# Create the codec and encode.
+		tcc = token_cookie.TokenCookieCodec(tc,	privkey=key)
+
+		data = tcc.encode()
+
+		# Verify the signature.
+		vtc = token_pb2.TokenCookie()
+		vtcc = token_cookie.TokenCookieCodec(vtc, pubkey=cert.get_pub_key())
+		self.assertRaises(token_cookie.TokenExpiredException,
+			vtcc.decode, data)
+
 
 class TestLoginCookie(unittest.TestCase):
 	"""Encode and decode a login cookie object."""
@@ -180,6 +201,30 @@ class TestLoginCookie(unittest.TestCase):
 		vlc = token_pb2.LoginCookie()
 		lcc = token_cookie.LoginCookieCodec(vlc, pubkey=cert.get_pub_key())
 		self.assertRaises(token_cookie.SignatureException, lcc.decode, data)
+
+	def test_verify_expired_cookie(self):
+		"""Verify a cookie with its expiry set in the past."""
+
+		cert, key = gen_certificate()
+
+		# Create a LoginCookie with the basic credentials.
+		lc = token_pb2.LoginCookie()
+		set_basic_creds(lc.basic_creds)
+		lc.basic_creds.expires -= 90
+		lc.granted = lc.basic_creds.expires - 300
+		lc.purges = lc.basic_creds.expires
+		lc.random = 'A' * 42  # TODO(caoimhe): This should go away.
+
+		# Create the codec and encode.
+		lcc = token_cookie.LoginCookieCodec(lc, privkey=key)
+
+		data = lcc.encode()
+
+		# Verify the signature.
+		vlc = token_pb2.LoginCookie()
+		vlcc = token_cookie.LoginCookieCodec(vlc, pubkey=cert.get_pub_key())
+		self.assertRaises(token_cookie.TokenExpiredException,
+			vlcc.decode, data)
 
 
 class TestAuthTokenRequest(unittest.TestCase):
@@ -388,3 +433,29 @@ class TestAuthTokenResponse(unittest.TestCase):
 		vatrc = token_cookie.AuthTokenResponseCodec(vatr,
 			cacert=cacert)
 		self.assertRaises(token_cookie.SignatureException, vatrc.decode, data)
+
+	def test_verify_expired_response(self):
+		"""Verify a response with its expiry set in the past."""
+
+		cert, key = gen_certificate()
+
+		# Create a AuthTokenResponse with the basic credentials.
+		atr = token_pb2.AuthTokenResponse()
+		set_basic_creds(atr.basic_creds)
+		atr.basic_creds.expires -= 90
+		atr.certificate = _TEST_CERT
+		atr.original_uri = 'https://localhost/'
+		atr.app_name = 'Test Application'
+		atr.granted = calendar.timegm(datetime.now().timetuple())
+		atr.random = 'A' * 42  # TODO(caoimhe): This should go away.
+
+		# Create the codec and encode.
+		atrc = token_cookie.AuthTokenResponseCodec(atr, privkey=key)
+		data = atrc.encode()
+
+		# Verify the signature.
+		vatr = token_pb2.AuthTokenResponse()
+		vatrc = token_cookie.AuthTokenResponseCodec(vatr,
+			pubkey=cert.get_pub_key())
+		self.assertRaises(token_cookie.TokenExpiredException,
+			vatrc.decode, data)
