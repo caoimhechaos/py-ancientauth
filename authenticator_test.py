@@ -79,3 +79,24 @@ class AuthenticatorTest(unittest.TestCase):
 		auth = authenticator.Authenticator("Unit Test", cert=_TEST_CERT)
 		self.assertEquals(auth.get_authenticated_user(cookie),
 			'testosteronius')
+
+	def test_authenticated_scopes(self):
+		"""Test if we can extract the scopes from a TokenCookie."""
+
+		key = importKey(_TEST_KEY)
+		token = token_pb2.TokenCookie()
+		token.basic_creds.user_name = 'testosteronius'
+		token.basic_creds.scope.append('users')
+		token.basic_creds.scope.append('lusers')
+		token.basic_creds.expires = calendar.timegm(
+			datetime.utcnow().timetuple()) + 30
+
+		codec = token_cookie.TokenCookieCodec(token, privkey=key)
+		cookie = codec.encode()
+
+		auth = authenticator.Authenticator("Unit Test", cert=_TEST_CERT)
+		self.assertEqual(auth.get_authenticated_scopes(cookie),
+			['users', 'lusers'])
+		self.assertTrue(auth.is_authenticated_scope(cookie, 'users'))
+		self.assertTrue(auth.is_authenticated_scope(cookie, 'lusers'))
+		self.assertFalse(auth.is_authenticated_scope(cookie, 'fusers'))
