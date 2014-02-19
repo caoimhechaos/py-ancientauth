@@ -260,7 +260,7 @@ class TestAuthTokenRequest(unittest.TestCase):
 			pubkey=cert.get_pub_key())
 		try:
 			vatrc.decode(data)
-		except token_cookie.SignatureException, e:
+		except token_cookie.SignatureException as e:
 			# TODO(caoimhe): Reenable this test.
 			# self.fail("Can't verify signature using original certificate")
 			pass
@@ -272,7 +272,7 @@ class TestAuthTokenRequest(unittest.TestCase):
 		vatrc = token_cookie.AuthTokenRequestCodec(vatr, cacert=cacert)
 		try:
 			vatrc.decode(data)
-		except token_cookie.SignatureException, e:
+		except token_cookie.SignatureException as e:
 			# TODO(caoimhe): reenable this test.
 			# self.fail("Can't verify signature using inband certificate")
 			pass
@@ -365,7 +365,7 @@ class TestAuthTokenResponse(unittest.TestCase):
 			pubkey=cert.get_pub_key())
 		try:
 			vatrc.decode(data)
-		except token_cookie.SignatureException, e:
+		except token_cookie.SignatureException as e:
 			self.fail("Can't verify signature using original certificate")
 
 		self.assertEqual(atr, vatr)
@@ -375,7 +375,7 @@ class TestAuthTokenResponse(unittest.TestCase):
 		vatrc = token_cookie.AuthTokenResponseCodec(vatr, cacert=cacert)
 		try:
 			vatrc.decode(data)
-		except token_cookie.SignatureException, e:
+		except token_cookie.SignatureException as e:
 			self.fail("Can't verify signature using inband certificate")
 
 		self.assertEqual(atr, vatr)
