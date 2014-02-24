@@ -389,7 +389,7 @@ class AuthTokenRequestCodec(object):
         h = SHA256.new(self._atr.SerializeToString())
 
         signer = PKCS1_v1_5.new(self._priv)
-        self.signature = signer.sign(h)
+        self._atr.signature = signer.sign(h)
 
         return base64.urlsafe_b64encode(self._atr.SerializeToString())
 
@@ -569,7 +569,7 @@ class AuthTokenResponseCodec(object):
             datetime.utcnow()):
             raise TokenExpiredException()
 
-       # We'll need a copy of the data so we can verify it by
+        # We'll need a copy of the data so we can verify it by
         # setting the signature to None.
         pb = token_pb2.AuthTokenResponse()
         pb.ParseFromString(data)
@@ -585,11 +585,11 @@ class AuthTokenResponseCodec(object):
             if not self._ca:
                 raise NoKeyException()
             if not self._ca.check_signature(cert):
-                raise SignatureException()
+                raise SignatureException("Certificate not signed by CA")
 
             verifier = PKCS1_v1_5.new(cert.get_pubkey())
 
         if verifier.verify(h, self._atr.signature):
             return len(data)
         else:
-            raise SignatureException()
+            raise SignatureException("Unable to verify data signature")
