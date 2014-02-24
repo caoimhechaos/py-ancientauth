@@ -1,5 +1,6 @@
 """Unit test for the AncientAuth authenticator class."""
 
+from ancientsolutions.crypttools import x509
 from datetime import datetime
 from Crypto.PublicKey.RSA import importKey
 
@@ -100,3 +101,36 @@ class AuthenticatorTest(unittest.TestCase):
 		self.assertTrue(auth.is_authenticated_scope(cookie, 'users'))
 		self.assertTrue(auth.is_authenticated_scope(cookie, 'lusers'))
 		self.assertFalse(auth.is_authenticated_scope(cookie, 'fusers'))
+
+	def test_request_authorization(self):
+		"""Test if we can request authorization correctly."""
+
+		cert = x509.parse_certificate(_TEST_CERT)
+
+		auth = authenticator.Authenticator("Unit Test", cert=_TEST_CERT,
+			key=_TEST_KEY)
+		dest = authenticator.urlparse(auth.request_authorization(
+			'http://bazquux.foo/asdf/bsdf?q=x&r=x#asd'))
+
+		self.assertEqual("https", dest.scheme)
+		self.assertEqual("login.ancient-solutions.com", dest.hostname)
+		self.assertEqual("/", dest.path)
+
+		query = authenticator.parse_qs(dest.query)
+		self.assertEqual(["token"], query["response_type"])
+		self.assertEqual(["http://bazquux.foo/asdf/bsdf?q=x&r=x#asd"],
+			query["redirect_uri"])
+		self.assertIn("client_id", query)
+
+		atr = token_pb2.AuthTokenRequest()
+		cdc = token_cookie.AuthTokenRequestCodec(atr,
+			pubkey=cert.get_pub_key())
+		try:
+			cdc.decode(query["client_id"][0])
+		except token_cookie.SignatureException as e:
+			self.fail("Cannot validate signature on auth token request")
+
+		self.assertEqual("Unit Test", atr.app_name)
+		self.assertEqual("http://bazquux.foo/asdf/bsdf?q=x&r=x#asd",
+			atr.original_uri)
+		self.assertEqual("http://bazquux.foo/login", atr.return_uri)
