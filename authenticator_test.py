@@ -134,3 +134,7 @@ class AuthenticatorTest(unittest.TestCase):
 		self.assertEqual("http://bazquux.foo/asdf/bsdf?q=x&r=x#asd",
 			atr.original_uri)
 		self.assertEqual("http://bazquux.foo/login", atr.return_uri)
+
+
+if __name__ == '__main__':
+	unittest.main()

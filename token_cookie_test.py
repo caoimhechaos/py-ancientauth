@@ -458,3 +458,7 @@ class TestAuthTokenResponse(unittest.TestCase):
 			pubkey=cert.get_pub_key())
 		self.assertRaises(token_cookie.TokenExpiredException,
 			vatrc.decode, data)
+
+
+if __name__ == '__main__':
+	unittest.main()
