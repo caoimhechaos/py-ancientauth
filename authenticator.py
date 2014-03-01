@@ -1,5 +1,8 @@
 """Classes related to the ancient-auth authenticator module."""
 
+import calendar
+from datetime import datetime, timedelta
+
 from ancientsolutions.crypttools import rsa, x509
 from Crypto.PublicKey.RSA import importKey
 
@@ -18,6 +21,7 @@ import token_cookie
 import token_pb2
 
 import logging
+
 
 class Authenticator(object):
     """Authentification client for the Ancient Login Service."""
@@ -174,3 +178,39 @@ class Authenticator(object):
         newurl = ("https://" + self._authserver +
             "/?" + urlencode(params))
         return newurl
+
+    def login_handler(self, access_token):
+        """Handle a login response from the login server.
+
+        This should be invoked when an HTTP post from the login server
+        occurs. This method will return any local cookies to set up and
+        redirects the user back to the URL requested with the login
+        operation.
+
+        Please note that when the /login handler is invoked, the peer
+        will not be the login server, but the user.
+
+        Args:
+        access_token: the content of the access_token HTTP parameter
+        sent by the login server. This will essentially be a signed,
+        base64 encoded token with user information.
+
+        Returns:
+        Tuple with the cookie value to set the authentication token,
+        and the URL to redirect the user to.
+        """
+        atr = token_pb2.AuthTokenResponse()
+        atrc = token_cookie.AuthTokenResponseCodec(atr,
+            cacert=self._ca)
+        atrc.decode(access_token)
+
+        expiry = datetime.now() + timedelta(1)
+        tc = token_pb2.TokenCookie()
+        tc.basic_creds.user_name = atr.basic_creds.user_name
+        tc.basic_creds.scope.extend(atr.basic_creds.scope)
+        tc.basic_creds.expires = calendar.timegm(expiry.utctimetuple())
+
+        tcc = token_cookie.TokenCookieCodec(tc, privkey=self._rsa_key)
+        cookiedata = tcc.encode()
+
+        return (cookiedata, atr.original_uri)

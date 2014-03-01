@@ -1,7 +1,7 @@
 """Unit test for the AncientAuth authenticator class."""
 
 from ancientsolutions.crypttools import x509
-from datetime import datetime
+from datetime import datetime, timedelta
 from Crypto.PublicKey.RSA import importKey
 
 import authenticator
@@ -134,6 +134,39 @@ class AuthenticatorTest(unittest.TestCase):
 		self.assertEqual("http://bazquux.foo/asdf/bsdf?q=x&r=x#asd",
 			atr.original_uri)
 		self.assertEqual("http://bazquux.foo/login", atr.return_uri)
+
+	def test_login_handler(self):
+		"""Check whether an authentication token response is handled
+		and decoded correctly by the authenticator implementation."""
+
+		now = datetime.now()
+		expires = now + timedelta(0, 300)
+		pkey = importKey(_TEST_KEY)
+
+		auth = authenticator.Authenticator("Unit Test", cert=_TEST_CERT,
+			key=_TEST_KEY, ca_bundle=_TEST_CA)
+		atres = token_pb2.AuthTokenResponse()
+		atres.basic_creds.user_name = 'testosteronius'
+		atres.basic_creds.scope.extend(['one', 'two'])
+		atres.basic_creds.expires = calendar.timegm(expires.utctimetuple())
+
+		atres.app_name = 'Unit Test'
+		atres.original_uri = 'http://lolcathost:8080/foo/bar'
+		atres.certificate = _TEST_CA
+		atres.granted = calendar.timegm(now.utctimetuple())
+
+		# FIXME(caoimhe): this should go away.
+		atres.random = 'A' * 64
+
+		atrc = token_cookie.AuthTokenResponseCodec(atres, privkey=pkey)
+		response = atrc.encode()
+
+		data = auth.login_handler(response)
+		self.assertEquals(2, len(data))
+		cookiedata = data[0]
+		nexturl = data[1]
+
+		self.assertEquals('http://lolcathost:8080/foo/bar', nexturl)
 
 
 if __name__ == '__main__':
