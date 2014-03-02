@@ -152,7 +152,7 @@ class AuthenticatorTest(unittest.TestCase):
 
 		atres.app_name = 'Unit Test'
 		atres.original_uri = 'http://lolcathost:8080/foo/bar'
-		atres.certificate = _TEST_CA
+		atres.certificate = _TEST_CERT
 		atres.granted = calendar.timegm(now.utctimetuple())
 
 		# FIXME(caoimhe): this should go away.
