@@ -4,7 +4,7 @@ import calendar
 from datetime import datetime, timedelta
 
 from ancientsolutions.crypttools import rsa, x509
-from Crypto.PublicKey.RSA import importKey
+from Crypto.PublicKey import RSA
 
 from os.path import exists
 try:
@@ -40,18 +40,23 @@ class Authenticator(object):
         the server.
         """
 
-        if key is not None and exists(key):
+        if key is not None and type(key) == str and exists(key):
             self._rsa_key = rsa.UnwrapRSAKey(key)
+        elif key is not None and isinstance(key, RSA._RSAobj):
+            self._rsa_key = key
         elif key is not None:
-            self._rsa_key = importKey(key)
+            self._rsa_key = RSA.importKey(key)
         else:
             self._rsa_key = None
 
-        if cert is not None and exists(cert):
+        if cert is not None and type(cert) == str and exists(cert):
             self._cert = x509.parse_certificate_file(cert)
             f = open(cert)
             self._plain_cert = f.read()
             f.close()
+        elif cert is not None and isinstance(cert, x509.Certificate):
+            self._cert = cert
+            # TODO: We'll need the plaintext certificate here...
         elif cert is not None:
             self._cert = x509.parse_certificate(cert)
             self._plain_cert = cert
@@ -59,8 +64,10 @@ class Authenticator(object):
             self._cert = None
             self._plain_cert = None
 
-        if ca_bundle is not None and exists(ca_bundle):
+        if ca_bundle is not None and type(ca_bundle) == str and exists(ca_bundle):
             self._ca = x509.parse_certificate_file(ca_bundle)
+        elif ca_bundle is not None and isinstance(ca_bundle, x509.Certificate):
+            self._ca = ca_bundle
         elif ca_bundle is not None:
             self._ca = x509.parse_certificate(ca_bundle)
         else:
