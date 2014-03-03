@@ -324,7 +324,7 @@ class TestAuthTokenRequest(unittest.TestCase):
 		# Verify the signature.
 		vatr = token_pb2.AuthTokenRequest()
 		vatrc = token_cookie.AuthTokenRequestCodec(vatr,
-			pubkey=cert.get_pub_key())
+			cacert=cacert)
 		self.assertRaises(token_cookie.SignatureException, vatrc.decode, data)
 
 
