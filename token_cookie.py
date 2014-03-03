@@ -429,7 +429,7 @@ class AuthTokenRequestCodec(object):
 
             if not self._ca:
                 raise NoKeyException()
-            if not self._ca.check_signature(cert):
+            if not cert.check_signature(self._ca):
                 raise SignatureException()
 
             verifier = PKCS1_v1_5.new(cert.get_pub_key())
@@ -584,7 +584,7 @@ class AuthTokenResponseCodec(object):
 
             if not self._ca:
                 raise NoKeyException()
-            if not self._ca.check_signature(cert):
+            if not cert.check_signature(self._ca):
                 raise SignatureException("Certificate not signed by CA")
 
             verifier = PKCS1_v1_5.new(cert.get_pub_key())
