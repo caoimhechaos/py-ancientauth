@@ -143,6 +143,14 @@ class AuthenticatorTest(unittest.TestCase):
 		expires = now + timedelta(0, 300)
 		pkey = importKey(_TEST_KEY)
 
+		# We need a CA signed certificate, so we use the one
+		# from above.
+		cert = x509.parse_certificate(_TEST_CERT)
+		cacert = x509.parse_certificate(_TEST_CA)
+
+		# Sanity check for the above certificates.
+		self.assertTrue(cert.check_signature(cacert))
+
 		auth = authenticator.Authenticator("Unit Test", cert=_TEST_CERT,
 			key=_TEST_KEY, ca_bundle=_TEST_CA)
 		atres = token_pb2.AuthTokenResponse()
